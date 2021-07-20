@@ -1,29 +1,56 @@
+import axios, { AxiosError } from "axios";
+import { useContext } from "react";
 import { useHistory } from "react-router-dom";
 
 import { CompanyIcon, GithubDarkIcon, LocationIcon, WebsiteLinkIcon, TwitterIcon } from "../../assets/icons";
 import { PAGE_URL } from "../../constants/urls";
+import SnackBarContext from "../../contexts/SnackbarContext";
+import UserContext from "../../contexts/UserContext";
 import { useProfileQuery } from "../../services/queries";
+import PageLoading from "../@layout/PageLoading/PageLoading";
 import ProfileHeader from "../@shared/ProfileHeader/ProfileHeader";
 import { Container, Description, DetailInfo } from "./Profile.style";
 
 export interface Props {
   isMyProfile: boolean;
-  userName: string | null;
+  username: string | null;
 }
 
-const Profile = ({ isMyProfile, userName }: Props) => {
+const Profile = ({ isMyProfile, username }: Props) => {
   const history = useHistory();
-  const { isLoading, error, data } = useProfileQuery(isMyProfile, userName);
+  const { isLoggedIn, logout } = useContext(UserContext);
+  const { pushMessage } = useContext(SnackBarContext);
+  const { isLoading, error, data, refetch } = useProfileQuery(isMyProfile, username);
+
+  const handleAxiosError = (error: AxiosError) => {
+    const { status } = error.response ?? {};
+
+    if (status === 401) {
+      if (isMyProfile) {
+        pushMessage("로그인한 사용자만 사용할 수 있는 서비스입니다.");
+
+        history.push(PAGE_URL.HOME);
+      } else {
+        isLoggedIn && pushMessage("사용자 정보가 유효하지 않아 자동으로 로그아웃합니다.");
+        logout();
+        refetch();
+      }
+    }
+  };
 
   if (error) {
     console.error(error);
-    alert("프로필을 확인할 수 없습니다.");
 
-    history.push(PAGE_URL.HOME);
+    if (axios.isAxiosError(error)) {
+      handleAxiosError(error);
+    } else {
+      pushMessage("프로필을 확인할 수 없습니다.");
+      history.push(PAGE_URL.HOME);
+    }
   }
 
   if (isLoading) {
-    return <div>loading</div>;
+    return <PageLoading />;
   }
 
   return (

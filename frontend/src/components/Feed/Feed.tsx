@@ -1,25 +1,23 @@
-import axios from "axios";
 import { useContext } from "react";
-
-import UserContext from "../../contexts/UserContext";
 import { Post } from "../../@types";
 import { LIMIT } from "../../constants/limits";
 import { FAILURE_MESSAGE } from "../../constants/message";
+import SnackBarContext from "../../contexts/SnackbarContext";
 import useFeed from "../../services/hooks/useFeed";
 import PostItem from "../@shared/PostItem/PostItem";
 import { Container, PostItemWrapper } from "./Feed.style";
-import { useQueryClient } from "react-query";
-import { QUERY } from "../../constants/queries";
 
-const Feed = () => {
-  const { logout } = useContext(UserContext);
-  const queryClient = useQueryClient();
-  const { posts, isLoading, error, commentValue, setCommentValue, deletePostLike, addPostLike, setPosts, addComment } =
-    useFeed();
+interface Props {
+  posts: Post[];
+}
+
+const Feed = ({ posts }: Props) => {
+  const { pushMessage } = useContext(SnackBarContext);
+  const { commentValue, setCommentValue, deletePostLike, addPostLike, setPosts, addComment } = useFeed();
 
   const handleCommentValueChange: React.ChangeEventHandler<HTMLTextAreaElement> = ({ target: { value } }) => {
     if (value.length > LIMIT.COMMENT_LENGTH) {
-      alert(FAILURE_MESSAGE.COMMENT_CONTENT_MAX_LENGTH_EXCEEDED);
+      pushMessage(FAILURE_MESSAGE.COMMENT_CONTENT_MAX_LENGTH_EXCEEDED);
       return;
     }
 
@@ -31,14 +29,10 @@ const Feed = () => {
   };
 
   const handleCommentLike = (commentId: string) => {
-    alert("아직 구현되지 않은 기능입니다.");
+    pushMessage("아직 구현되지 않은 기능입니다.");
   };
 
   const handlePostLike = (postId: string) => {
-    if (!posts) {
-      return;
-    }
-
     const newPosts = [...posts];
     const targetPost = newPosts.find((post) => post.postId === postId);
 
@@ -59,23 +53,6 @@ const Feed = () => {
       setPosts(newPosts);
     }
   };
-
-  if (error) {
-    if (axios.isAxiosError(error)) {
-      const { status } = error.response ?? {};
-
-      if (status === 401) {
-        logout();
-        queryClient.refetchQueries(QUERY.GET_HOME_FEED_POSTS, { active: true });
-      }
-    }
-
-    return <div>에러!!</div>;
-  }
-
-  if (isLoading) {
-    return <div>로딩!!</div>;
-  }
 
   return (
     <Container>
